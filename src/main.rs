@@ -45,6 +45,8 @@ enum Commands {
     Scan,
     /// Append addappid(AppID) to selected numeric .lua files.
     AddAppid,
+    /// Switch the target directory and save it locally.
+    SwitchDir,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -113,7 +115,6 @@ enum Msg {
     SavedAccountInvalid,
     AccountPrompt,
     AccountInvalid,
-    DirectoryPrompt,
     DirectoryAccessFailed,
     PathIsNotDirectory,
     ReadDirFailed,
@@ -139,6 +140,9 @@ enum Msg {
     InvalidRange,
     ReversedRange,
     OutOfRange,
+    DirSaveFailed,
+    CurrentDirectory,
+    DirPrompt,
 }
 
 fn zh_cn(key: Msg) -> &'static str {
@@ -169,7 +173,6 @@ fn zh_cn(key: Msg) -> &'static str {
         Msg::SavedAccountInvalid => "本地保存的账号 ID 无效，将重新输入。",
         Msg::AccountPrompt => "请输入 17 位纯数字目标账号 ID：",
         Msg::AccountInvalid => "账号 ID 必须是 17 位纯数字字符串",
-        Msg::DirectoryPrompt => "请输入包含 Lua 配置文件的本地目录路径：",
         Msg::DirectoryAccessFailed => "目录不存在或无法访问",
         Msg::PathIsNotDirectory => "路径不是目录",
         Msg::ReadDirFailed => "无法读取目录",
@@ -195,6 +198,9 @@ fn zh_cn(key: Msg) -> &'static str {
         Msg::InvalidRange => "无法解析范围",
         Msg::ReversedRange => "范围起点不能大于终点",
         Msg::OutOfRange => "序号超出有效范围",
+        Msg::DirSaveFailed => "无法保存目录路径",
+        Msg::CurrentDirectory => "当前目录",
+        Msg::DirPrompt => "请输入包含 Lua 配置文件的本地目录路径：",
     }
 }
 
@@ -226,7 +232,6 @@ fn zh_tw(key: Msg) -> &'static str {
         Msg::SavedAccountInvalid => "本機儲存的帳號 ID 無效，將重新輸入。",
         Msg::AccountPrompt => "請輸入 17 位純數字目標帳號 ID：",
         Msg::AccountInvalid => "帳號 ID 必須是 17 位純數字字串",
-        Msg::DirectoryPrompt => "請輸入包含 Lua 設定檔的本機目錄路徑：",
         Msg::DirectoryAccessFailed => "目錄不存在或無法存取",
         Msg::PathIsNotDirectory => "路徑不是目錄",
         Msg::ReadDirFailed => "無法讀取目錄",
@@ -252,6 +257,9 @@ fn zh_tw(key: Msg) -> &'static str {
         Msg::InvalidRange => "無法解析範圍",
         Msg::ReversedRange => "範圍起點不能大於終點",
         Msg::OutOfRange => "序號超出有效範圍",
+        Msg::DirSaveFailed => "無法儲存目錄路徑",
+        Msg::CurrentDirectory => "目前目錄",
+        Msg::DirPrompt => "請輸入包含 Lua 設定檔的本機目錄路徑：",
     }
 }
 
@@ -283,7 +291,6 @@ fn en(key: Msg) -> &'static str {
         Msg::SavedAccountInvalid => "The saved account ID is invalid. Please enter it again.",
         Msg::AccountPrompt => "Enter the 17-digit target account ID:",
         Msg::AccountInvalid => "Account ID must be a 17-digit numeric string",
-        Msg::DirectoryPrompt => "Enter the local directory path containing Lua config files:",
         Msg::DirectoryAccessFailed => "Directory does not exist or cannot be accessed",
         Msg::PathIsNotDirectory => "Path is not a directory",
         Msg::ReadDirFailed => "Unable to read directory",
@@ -309,6 +316,9 @@ fn en(key: Msg) -> &'static str {
         Msg::InvalidRange => "Unable to parse range",
         Msg::ReversedRange => "Range start cannot be greater than range end",
         Msg::OutOfRange => "Index is outside the valid range",
+        Msg::DirSaveFailed => "Unable to save directory path",
+        Msg::CurrentDirectory => "Current directory",
+        Msg::DirPrompt => "Enter the local directory path containing Lua config files:",
     }
 }
 
@@ -382,6 +392,7 @@ fn run() -> AppResult<()> {
     if let Err(err) = match cli.command.as_ref().unwrap_or(&Commands::Scan) {
         Commands::Scan => run_scan(&cli, language),
         Commands::AddAppid => run_add_appid(&cli, language),
+        Commands::SwitchDir => run_switch_dir(&cli, language),
     } {
         return Err(format!("{}: {err}", language.msg(Msg::ErrorPrefix)).into());
     }
@@ -520,6 +531,16 @@ fn run_add_appid(cli: &Cli, language: Language) -> AppResult<()> {
     Ok(())
 }
 
+fn run_switch_dir(cli: &Cli, language: Language) -> AppResult<()> {
+    let dir = resolve_directory(cli.dir.as_deref(), language)?;
+    println!(
+        "{}: {}",
+        language.msg(Msg::CurrentDirectory),
+        dir.canonical.display()
+    );
+    Ok(())
+}
+
 fn resolve_language(cli_language: Option<Language>, switch_language: bool) -> AppResult<Language> {
     if let Some(language) = cli_language {
         save_language(language)?;
@@ -591,7 +612,13 @@ fn validate_account_id(account_id: &str, language: Language) -> AppResult<()> {
 fn resolve_directory(cli_dir: Option<&Path>, language: Language) -> AppResult<SelectedDirectory> {
     let dir = match cli_dir {
         Some(dir) => dir.to_path_buf(),
-        None => PathBuf::from(prompt(language.msg(Msg::DirectoryPrompt))?),
+        None => {
+            if let Some(saved) = load_dir()? {
+                PathBuf::from(saved)
+            } else {
+                PathBuf::from(prompt(language.msg(Msg::DirPrompt))?)
+            }
+        }
     };
     let display = dir.clone();
 
@@ -606,6 +633,8 @@ fn resolve_directory(cli_dir: Option<&Path>, language: Language) -> AppResult<Se
     if !canonical.is_dir() {
         return Err(format!("{}: {}", language.msg(Msg::PathIsNotDirectory), canonical.display()).into());
     }
+
+    save_dir(&canonical.to_string_lossy(), language)?;
 
     Ok(SelectedDirectory { canonical, display })
 }
@@ -1044,6 +1073,10 @@ fn language_config_file_path() -> AppResult<PathBuf> {
     Ok(config_dir()?.join("language.txt"))
 }
 
+fn dir_config_file_path() -> AppResult<PathBuf> {
+    Ok(config_dir()?.join("dir.txt"))
+}
+
 fn load_account_id(language: Language) -> AppResult<Option<String>> {
     let path = account_config_file_path()?;
     if !path.exists() {
@@ -1098,6 +1131,38 @@ fn save_language(language: Language) -> AppResult<()> {
         format!(
             "{} {}: {err}",
             language.msg(Msg::LanguageSaveFailed),
+            path.display()
+        )
+    })?;
+    Ok(())
+}
+
+fn load_dir() -> AppResult<Option<String>> {
+    let path = dir_config_file_path()?;
+    if !path.exists() {
+        return Ok(None);
+    }
+
+    let value = fs::read_to_string(&path)?;
+    Ok(Some(value.trim().to_owned()))
+}
+
+fn save_dir(dir: &str, language: Language) -> AppResult<()> {
+    let path = dir_config_file_path()?;
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|err| {
+            format!(
+                "{} {}: {err}",
+                language.msg(Msg::ConfigDirCreateFailed),
+                parent.display()
+            )
+        })?;
+    }
+
+    fs::write(&path, dir).map_err(|err| {
+        format!(
+            "{} {}: {err}",
+            language.msg(Msg::DirSaveFailed),
             path.display()
         )
     })?;
