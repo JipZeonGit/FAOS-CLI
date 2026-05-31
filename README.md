@@ -45,6 +45,7 @@ faos-cli [OPTIONS] [COMMAND]
     --switch-account            强制重新输入账号 ID
 -l, --language <LANGUAGE>       指定界面语言并保存：zh-cn、zh-tw、en
     --switch-language           强制重新选择界面语言
+    --cli                       强制使用 CLI 模式（不使用 TUI）
 ```
 
 可用子命令：
@@ -52,7 +53,104 @@ faos-cli [OPTIONS] [COMMAND]
 ```powershell
 scan          扫描并注入缺失的 setStat(...)
 add-appid     向选中文件追加 addappid(...)
+tui           强制启动 TUI 界面（默认）
 ```
+
+### TUI 交互界面（默认模式）
+
+不带任何命令行参数启动时，进入 TUI（终端用户界面）模式：
+
+```powershell
+faos-cli
+```
+
+#### 界面布局
+
+屏幕从上到下依次为：
+
+- **标题栏** — 显示程序名、当前语言、Ctrl+S 设置、Q 退出
+- **目录行** — 当前 Lua 文件所在目录路径
+- **内容区** — 左右分栏，两个带边框的面板：
+
+```
+┌─ 文件列表 ───────────┐  ┌─ 操作面板 ──────────────┐
+│ ○ 100.lua            │  │ F1:扫描setStat         │
+│ ● 101.lua            │  │ F2:添加AppID           │
+│ ○ 102.lua            │  │ ───────────────────────│
+│ ...                  │  │ 账号ID/AppID: 输入框    │
+│                      │  │                        │
+│                      │  │ → Enter 执行           │
+└──────────────────────┘  └────────────────────────┘
+```
+
+- **命令栏** — 底部显示当前状态和快捷键提示
+
+#### 全部按键绑定
+
+| 按键 | 作用范围 | 功能 |
+|------|----------|------|
+| **全局** | | |
+| `F1` | 任何位置 | 切换到 **扫描 setStat** 模式 |
+| `F2` | 任何位置 | 切换到 **添加 AppID** 模式 |
+| `F5` | 任何位置 | 重新加载 Lua 文件列表 |
+| `Ctrl+S` | 主界面 | 打开设置面板 |
+| `Ctrl+Q` / `Q` | 任何位置 | 退出程序 |
+| `Tab` | 主界面 | 切换焦点面板（文件列表 ↔ 操作面板） |
+| `Esc` | 主界面 | 焦点在操作面板时返回文件列表；焦点在文件列表时退出 |
+| | | |
+| **文件列表面板** | | |
+| `↑` / `k` | 文件列表 | 光标上移 |
+| `↓` / `j` | 文件列表 | 光标下移 |
+| `Space` / `Enter` | 文件列表 | 切换当前文件的选中状态（●/○） |
+| `A` | 文件列表 | 全选所有文件 |
+| `N` | 文件列表 | 取消全选 |
+| `鼠标滚轮` | 文件列表 | 滚动文件列表 |
+| `鼠标点击` | 文件列表 | 焦点切换到文件列表 |
+| | | |
+| **操作面板** | | |
+| `0-9` / 字符输入 | 操作面板 | 输入账号 ID（Scan 模式）或 AppID（AddAppid 模式） |
+| `Backspace` | 操作面板 | 删除最后输入的字符 |
+| `Enter` | 操作面板 | 执行当前操作（扫描写入 / 注入 AppID） |
+| | | |
+| **设置面板** | | |
+| `L` | 设置面板 | 打开语言选择界面 |
+| `D` | 设置面板 | 打开目录输入界面 |
+| `Esc` / `Q` | 设置面板 | 返回主界面 |
+| | | |
+| **目录输入界面** | | |
+| 字符输入 | 目录输入 | 输入目录路径 |
+| `Backspace` | 目录输入 | 删除最后输入的字符 |
+| `Enter` | 目录输入 | 确认目录并返回主界面 |
+| `Esc` | 目录输入 | 取消修改，返回设置面板 |
+| | | |
+| **语言选择界面** | | |
+| `↑` / `k` | 语言选择 | 光标上移 |
+| `↓` / `j` | 语言选择 | 光标下移 |
+| `Enter` | 语言选择 | 确认选择当前高亮的语言 |
+| `1` / `2` / `3` | 语言选择 | 直接选择 简体中文 / 繁體中文 / English |
+| `Esc` / `Q` | 语言选择 | 退出程序 |
+
+#### 详细操作流程
+
+**1. 首次启动**
+
+直接运行 `faos-cli`，先选择语言（↑↓ 移动，Enter 确认），进入主界面后自动加载上次保存的配置（账号 ID、目录）。如果尚未保存过目录，需要先设置目录（`Ctrl+S` → `D` 输入路径）。
+
+**2. 扫描 setStat（F1 模式）**
+
+按 `F1` 切换到扫描模式。左侧文件列表只显示**尚未包含 `setStat`** 的文件（扫描前需已填入账号 ID）。选中目标文件（`Space` 切换 ●/○），按 `Tab` 切换到操作面板，确认账号 ID 无误后按 `Enter` 执行。写入完成后重新扫描，已写入的文件会从列表消失。
+
+**3. 添加 AppID（F2 模式）**
+
+按 `F2` 切换到添加 AppID 模式。左侧文件列表显示目录中**所有**数字命名的 `.lua` 文件。选中文件后切换到操作面板，输入 AppID（纯数字），按 `Enter` 执行。工具会向每个选中文件追加 `addappid(<AppID>)`。
+
+**4. 更改目录**
+
+`Ctrl+S` 打开设置，按 `D` 进入目录输入界面，输入完整路径（如 `D:\path\to\lua`），`Enter` 确认。路径会自动规范化和持久化保存。
+
+**5. 重新加载文件**
+
+任何时候按 `F5` 可重新扫描目录。切换操作模式（`F1`/`F2`）也会自动更新文件列表过滤条件。
 
 ### 首次使用
 
@@ -251,6 +349,7 @@ faos-cli [OPTIONS] [COMMAND]
     --switch-account            強制重新輸入帳號 ID
 -l, --language <LANGUAGE>       指定介面語言並保存：zh-cn、zh-tw、en
     --switch-language           強制重新選擇介面語言
+    --cli                       強制使用 CLI 模式（不使用 TUI）
 ```
 
 可用子命令：
@@ -258,7 +357,104 @@ faos-cli [OPTIONS] [COMMAND]
 ```powershell
 scan          掃描並注入缺失的 setStat(...)
 add-appid     向選中檔案追加 addappid(...)
+tui           強制啟動 TUI 介面（預設）
 ```
+
+### TUI 互動介面（預設模式）
+
+不帶任何命令列參數啟動時，進入 TUI（終端使用者介面）模式：
+
+```powershell
+faos-cli
+```
+
+#### 介面佈局
+
+螢幕從上到下依次為：
+
+- **標題列** — 顯示程式名、目前語言、Ctrl+S 設定、Q 退出
+- **目錄行** — 目前 Lua 檔案所在目錄路徑
+- **內容區** — 左右分欄，兩個帶邊框的面板：
+
+```
+┌─ 檔案列表 ───────────┐  ┌─ 操作面板 ──────────────┐
+│ ○ 100.lua            │  │ F1:掃描setStat         │
+│ ● 101.lua            │  │ F2:新增AppID           │
+│ ○ 102.lua            │  │ ──────────────────────│
+│ ...                  │  │ 帳號ID/AppID: 輸入框   │
+│                      │  │                       │
+│                      │  │ → Enter 執行           │
+└──────────────────────┘  └────────────────────────┘
+```
+
+- **命令列** — 底部顯示目前狀態和快速鍵提示
+
+#### 全部按鍵綁定
+
+| 按鍵 | 作用範圍 | 功能 |
+|------|----------|------|
+| **全域** | | |
+| `F1` | 任何位置 | 切換到 **掃描 setStat** 模式 |
+| `F2` | 任何位置 | 切換到 **新增 AppID** 模式 |
+| `F5` | 任何位置 | 重新載入 Lua 檔案列表 |
+| `Ctrl+S` | 主介面 | 開啟設定面板 |
+| `Ctrl+Q` / `Q` | 任何位置 | 離開程式 |
+| `Tab` | 主介面 | 切換焦點面板（檔案列表 ↔ 操作面板） |
+| `Esc` | 主介面 | 焦點在操作面板時返回檔案列表；焦點在檔案列表時離開 |
+| | | |
+| **檔案列表面板** | | |
+| `↑` / `k` | 檔案列表 | 游標上移 |
+| `↓` / `j` | 檔案列表 | 游標下移 |
+| `Space` / `Enter` | 檔案列表 | 切換目前檔案的選取狀態（●/○） |
+| `A` | 檔案列表 | 全選所有檔案 |
+| `N` | 檔案列表 | 取消全選 |
+| `滑鼠滾輪` | 檔案列表 | 捲動檔案列表 |
+| `滑鼠點擊` | 檔案列表 | 焦點切換到檔案列表 |
+| | | |
+| **操作面板** | | |
+| `0-9` / 字元輸入 | 操作面板 | 輸入帳號 ID（Scan 模式）或 AppID（AddAppid 模式） |
+| `Backspace` | 操作面板 | 刪除最後輸入的字元 |
+| `Enter` | 操作面板 | 執行目前操作（掃描寫入 / 注入 AppID） |
+| | | |
+| **設定面板** | | |
+| `L` | 設定面板 | 開啟語言選擇介面 |
+| `D` | 設定面板 | 開啟目錄輸入介面 |
+| `Esc` / `Q` | 設定面板 | 返回主介面 |
+| | | |
+| **目錄輸入介面** | | |
+| 字元輸入 | 目錄輸入 | 輸入目錄路徑 |
+| `Backspace` | 目錄輸入 | 刪除最後輸入的字元 |
+| `Enter` | 目錄輸入 | 確認目錄並返回主介面 |
+| `Esc` | 目錄輸入 | 取消修改，返回設定面板 |
+| | | |
+| **語言選擇介面** | | |
+| `↑` / `k` | 語言選擇 | 游標上移 |
+| `↓` / `j` | 語言選擇 | 游標下移 |
+| `Enter` | 語言選擇 | 確認選擇目前反白的語言 |
+| `1` / `2` / `3` | 語言選擇 | 直接選擇 简体中文 / 繁體中文 / English |
+| `Esc` / `Q` | 語言選擇 | 離開程式 |
+
+#### 詳細操作流程
+
+**1. 首次啟動**
+
+直接執行 `faos-cli`，先選擇語言（↑↓ 移動，Enter 確認），進入主介面後自動載入上次保存的設定（帳號 ID、目錄）。如果尚未保存目錄，需要先設定目錄（`Ctrl+S` → `D` 輸入路徑）。
+
+**2. 掃描 setStat（F1 模式）**
+
+按 `F1` 切換到掃描模式。左側檔案列表只顯示**尚未包含 `setStat`** 的檔案（掃描前需已填入帳號 ID）。選取目標檔案（`Space` 切換 ●/○），按 `Tab` 切換到操作面板，確認帳號 ID 無誤後按 `Enter` 執行。寫入完成後重新掃描，已寫入的檔案會從列表消失。
+
+**3. 新增 AppID（F2 模式）**
+
+按 `F2` 切換到新增 AppID 模式。左側檔案列表顯示目錄中**所有**數字命名的 `.lua` 檔案。選取檔案後切換到操作面板，輸入 AppID（純數字），按 `Enter` 執行。工具會向每個選取檔案追加 `addappid(<AppID>)`。
+
+**4. 變更目錄**
+
+`Ctrl+S` 開啟設定，按 `D` 進入目錄輸入介面，輸入完整路徑（如 `D:\path\to\lua`），`Enter` 確認。路徑會自動規範化和持久化保存。
+
+**5. 重新載入檔案**
+
+任何時候按 `F5` 可重新掃描目錄。切換操作模式（`F1`/`F2`）也會自動更新檔案列表篩選條件。
 
 ### 首次使用
 
@@ -457,6 +653,7 @@ Common global options:
     --switch-account            Force entering a new account ID
 -l, --language <LANGUAGE>       Set and save interface language: zh-cn, zh-tw, en
     --switch-language           Force choosing the interface language again
+    --cli                       Force CLI mode (no TUI)
 ```
 
 Available subcommands:
@@ -464,7 +661,104 @@ Available subcommands:
 ```powershell
 scan          Scan and inject missing setStat(...)
 add-appid     Append addappid(...) to selected files
+tui          Force start TUI interface (default)
 ```
+
+### TUI Interactive Mode (Default)
+
+When launched without any arguments, the program starts in TUI (Terminal User Interface) mode:
+
+```powershell
+faos-cli
+```
+
+#### Layout
+
+The screen is organized top to bottom as:
+
+- **Header** — program name, current language, Ctrl+S (Settings), Q (Quit)
+- **Directory** — path to the folder containing Lua files
+- **Content area** — two bordered panels side by side:
+
+```
+┌─ File List ───────────┐  ┌─ Operation Panel ──────┐
+│ ○ 100.lua             │  │ F1:Scan setStat        │
+│ ● 101.lua             │  │ F2:AddAppID            │
+│ ○ 102.lua             │  │ ───────────────────────│
+│ ...                   │  │ Account ID/AppID: input│
+│                       │  │                        │
+│                       │  │ → Enter to Execute     │
+└───────────────────────┘  └────────────────────────┘
+```
+
+- **Command bar** — status message and keybinding hints at the bottom
+
+#### Full Key Bindings
+
+| Key | Scope | Action |
+|-----|-------|--------|
+| **Global** | | |
+| `F1` | Anywhere | Switch to **Scan setStat** mode |
+| `F2` | Anywhere | Switch to **Add AppID** mode |
+| `F5` | Anywhere | Reload the Lua file list |
+| `Ctrl+S` | Main screen | Open the Settings panel |
+| `Ctrl+Q` / `Q` | Anywhere | Quit the program |
+| `Tab` | Main screen | Toggle focus between File List and Operation Panel |
+| `Esc` | Main screen | Focus on Operation Panel → back to File List; focus on File List → quit |
+| | | |
+| **File List Panel** | | |
+| `↑` / `k` | File list | Move cursor up |
+| `↓` / `j` | File list | Move cursor down |
+| `Space` / `Enter` | File list | Toggle selection of the current file (●/○) |
+| `A` | File list | Select all files |
+| `N` | File list | Deselect all files |
+| `Mouse scroll` | File list | Scroll through the file list |
+| `Mouse click` | File list | Switch focus to file list |
+| | | |
+| **Operation Panel** | | |
+| `0-9` / character input | Operation panel | Type account ID (Scan mode) or AppID (AddAppid mode) |
+| `Backspace` | Operation panel | Delete the last character |
+| `Enter` | Operation panel | Execute the current operation (scan & write / inject AppID) |
+| | | |
+| **Settings Panel** | | |
+| `L` | Settings panel | Open language selection screen |
+| `D` | Settings panel | Open directory input screen |
+| `Esc` / `Q` | Settings panel | Return to main screen |
+| | | |
+| **Directory Input Screen** | | |
+| Character input | Directory input | Type a directory path |
+| `Backspace` | Directory input | Delete the last character |
+| `Enter` | Directory input | Confirm the directory and return to main screen |
+| `Esc` | Directory input | Cancel changes, return to Settings panel |
+| | | |
+| **Language Selection Screen** | | |
+| `↑` / `k` | Language selection | Move cursor up |
+| `↓` / `j` | Language selection | Move cursor down |
+| `Enter` | Language selection | Confirm the highlighted language |
+| `1` / `2` / `3` | Language selection | Directly pick 简体中文 / 繁體中文 / English |
+| `Esc` / `Q` | Language selection | Quit the program |
+
+#### Walkthrough
+
+**1. First Launch**
+
+Run `faos-cli`. Pick a language (↑↓ to move, Enter to confirm). The main screen loads. Saved settings (account ID, directory) are restored automatically. If no directory has been saved, open Settings (`Ctrl+S`), press `D`, and type a path.
+
+**2. Scan setStat (F1 Mode)**
+
+Press `F1` to enter Scan mode. The file list on the left shows only files that **do not already contain a `setStat`** call (requires an account ID first). Toggle selections with `Space` (● = selected). Press `Tab` to switch to the operation panel, verify the account ID, and press `Enter` to execute. After writing completes, the tool rescans automatically and the written files disappear from the list.
+
+**3. Add AppID (F2 Mode)**
+
+Press `F2` to enter AddAppid mode. The file list shows **all** numeric `.lua` files in the directory. Select the target files, switch to the operation panel, type the AppID (digits only), and press `Enter`. The tool appends `addappid(<AppID>)` to every selected file.
+
+**4. Change Directory**
+
+Press `Ctrl+S` to open Settings, then `D` to enter the directory input screen. Type the full path (e.g. `D:\path\to\lua`) and press `Enter`. The path is canonicalized and persisted automatically.
+
+**5. Reload Files**
+
+Press `F5` at any time to re-scan the directory. Switching operation modes (`F1`/`F2`) also refreshes the file list filter automatically.
 
 ### First Run
 
