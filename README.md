@@ -197,10 +197,17 @@ target\release\faos-cli.exe
 2. 安装 Rust stable
 3. 运行 cargo test
 4. 运行 cargo build --release
-5. 上传 target/release/faos-cli.exe 作为 artifact
+5. 上传 faos-cli-windows-x64.exe 作为 artifact
 ```
 
 你可以在 GitHub 仓库的 Actions 页面下载 `faos-cli-windows-x64` artifact。
+
+如果要发布正式 Release，不需要先下载 artifact 再手动上传。推送一个 `v*` tag 即可自动创建 GitHub Release，并把 `faos-cli-windows-x64.exe` 上传为 Release 附件：
+
+```powershell
+git tag -a v1.0.0 -m "FAOS CLI v1.0.0"
+git push origin v1.0.0
+```
 
 ## 繁體中文
 
@@ -389,10 +396,17 @@ target\release\faos-cli.exe
 2. 安裝 Rust stable
 3. 執行 cargo test
 4. 執行 cargo build --release
-5. 上傳 target/release/faos-cli.exe 作為 artifact
+5. 上傳 faos-cli-windows-x64.exe 作為 artifact
 ```
 
 你可以在 GitHub 倉庫的 Actions 頁面下載 `faos-cli-windows-x64` artifact。
+
+如果要發布正式 Release，不需要先下載 artifact 再手動上傳。推送一個 `v*` tag 即可自動建立 GitHub Release，並把 `faos-cli-windows-x64.exe` 上傳為 Release 附件：
+
+```powershell
+git tag -a v1.0.0 -m "FAOS CLI v1.0.0"
+git push origin v1.0.0
+```
 
 ## English
 
@@ -581,7 +595,14 @@ The repository includes `.github/workflows/windows-build.yml`. After pushing to 
 2. Install Rust stable
 3. Run cargo test
 4. Run cargo build --release
-5. Upload target/release/faos-cli.exe as an artifact
+5. Upload faos-cli-windows-x64.exe as an artifact
 ```
 
 Download the `faos-cli-windows-x64` artifact from the repository's Actions page.
+
+For an official GitHub Release, you do not need to download the artifact and upload it manually. Push a `v*` tag and the workflow will create the GitHub Release automatically, then attach `faos-cli-windows-x64.exe`:
+
+```powershell
+git tag -a v1.0.0 -m "FAOS CLI v1.0.0"
+git push origin v1.0.0
+```

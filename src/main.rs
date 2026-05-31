@@ -320,6 +320,12 @@ struct LuaFile {
     numeric_stem: String,
 }
 
+#[derive(Debug, Clone)]
+struct SelectedDirectory {
+    canonical: PathBuf,
+    display: PathBuf,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum SelectionParseError {
     Empty,
@@ -388,9 +394,13 @@ fn run_scan(cli: &Cli, language: Language) -> AppResult<()> {
     let dir = resolve_directory(cli.dir.as_deref(), language)?;
 
     println!("{}: {account_id}", language.msg(Msg::CurrentAccount));
-    println!("{}: {}", language.msg(Msg::ScanningDirectory), dir.display());
+    println!(
+        "{}: {}",
+        language.msg(Msg::ScanningDirectory),
+        dir.display.display()
+    );
 
-    let files = scan_numeric_lua_files(&dir, language)?;
+    let files = scan_numeric_lua_files(&dir.canonical, language)?;
     if files.is_empty() {
         println!("{}", language.msg(Msg::NoNumericLuaFiles));
         return Ok(());
@@ -455,7 +465,7 @@ fn run_scan(cli: &Cli, language: Language) -> AppResult<()> {
 
 fn run_add_appid(cli: &Cli, language: Language) -> AppResult<()> {
     let dir = resolve_directory(cli.dir.as_deref(), language)?;
-    let files = scan_numeric_lua_files(&dir, language)?;
+    let files = scan_numeric_lua_files(&dir.canonical, language)?;
     if files.is_empty() {
         println!("{}", language.msg(Msg::NoNumericLuaFiles));
         return Ok(());
@@ -578,11 +588,12 @@ fn validate_account_id(account_id: &str, language: Language) -> AppResult<()> {
     }
 }
 
-fn resolve_directory(cli_dir: Option<&Path>, language: Language) -> AppResult<PathBuf> {
+fn resolve_directory(cli_dir: Option<&Path>, language: Language) -> AppResult<SelectedDirectory> {
     let dir = match cli_dir {
         Some(dir) => dir.to_path_buf(),
         None => PathBuf::from(prompt(language.msg(Msg::DirectoryPrompt))?),
     };
+    let display = dir.clone();
 
     let canonical = fs::canonicalize(&dir).map_err(|err| {
         format!(
@@ -596,7 +607,7 @@ fn resolve_directory(cli_dir: Option<&Path>, language: Language) -> AppResult<Pa
         return Err(format!("{}: {}", language.msg(Msg::PathIsNotDirectory), canonical.display()).into());
     }
 
-    Ok(canonical)
+    Ok(SelectedDirectory { canonical, display })
 }
 
 fn scan_numeric_lua_files(dir: &Path, language: Language) -> AppResult<Vec<LuaFile>> {
