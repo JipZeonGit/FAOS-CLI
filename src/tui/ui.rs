@@ -2,9 +2,7 @@ use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{
-        Block, BorderType, Borders, Clear, List, ListItem, Padding, Paragraph, Wrap,
-    },
+    widgets::{Block, BorderType, Borders, Clear, List, ListItem, Padding, Paragraph, Wrap},
     Frame,
 };
 
@@ -55,13 +53,13 @@ fn draw_main(f: &mut Frame, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),   // header
-            Constraint::Length(0),   // header ↔ directory
-            Constraint::Length(1),   // directory
-            Constraint::Length(1),   // directory ↔ content
-            Constraint::Min(10),     // content (two bordered panels)
-            Constraint::Length(1),   // content ↔ command bar
-            Constraint::Length(2),   // command bar
+            Constraint::Length(3), // header
+            Constraint::Length(0), // header ↔ directory
+            Constraint::Length(1), // directory
+            Constraint::Length(1), // directory ↔ content
+            Constraint::Min(10),   // content (two bordered panels)
+            Constraint::Length(1), // content ↔ command bar
+            Constraint::Length(2), // command bar
         ])
         .split(f.area());
 
@@ -207,7 +205,11 @@ fn draw_operation_panel(f: &mut Frame, app: &App, area: Rect) {
 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(1), Constraint::Length(1), Constraint::Min(0)])
+        .constraints([
+            Constraint::Length(1),
+            Constraint::Length(1),
+            Constraint::Min(0),
+        ])
         .split(area);
 
     let tab_line = Paragraph::new(Line::from(vec![
@@ -237,7 +239,7 @@ fn draw_operation_panel(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(tab_line, chunks[0]);
 
     let separator = Paragraph::new(Line::from(Span::styled(
-        "─".repeat(chunks[1].width.saturating_sub(1).max(0) as usize),
+        "─".repeat(chunks[1].width.saturating_sub(1) as usize),
         Style::default().fg(Color::DarkGray),
     )));
     f.render_widget(separator, chunks[1]);
@@ -285,7 +287,8 @@ fn draw_scan_panel(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(Paragraph::new(lines), area);
 
     if is_active {
-        let cursor_x = area.x + lang.msg(Msg::AccountIdLabel).len() as u16 + 2 + app.account_id.len() as u16;
+        let cursor_x =
+            area.x + lang.msg(Msg::AccountIdLabel).len() as u16 + 2 + app.account_id.len() as u16;
         let cursor_y = area.y;
         f.set_cursor_position((cursor_x, cursor_y));
     }
@@ -328,7 +331,8 @@ fn draw_addappid_panel(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(Paragraph::new(lines), area);
 
     if is_active {
-        let cursor_x = area.x + lang.msg(Msg::AppIdLabel).len() as u16 + 2 + app.app_id_input.len() as u16;
+        let cursor_x =
+            area.x + lang.msg(Msg::AppIdLabel).len() as u16 + 2 + app.app_id_input.len() as u16;
         let cursor_y = area.y;
         f.set_cursor_position((cursor_x, cursor_y));
     }
@@ -435,10 +439,7 @@ fn draw_directory_input(f: &mut Frame, app: &App) {
         Line::from(""),
         Line::from(vec![
             Span::styled("> ", Style::default().fg(Color::Yellow)),
-            Span::styled(
-                &app.directory_input,
-                Style::default().fg(Color::White),
-            ),
+            Span::styled(&app.directory_input, Style::default().fg(Color::White)),
             Span::styled("█", Style::default().fg(Color::Gray)),
         ]),
         Line::from(""),
