@@ -202,11 +202,18 @@ target\release\faos-cli.exe
 
 你可以在 GitHub 仓库的 Actions 页面下载 `faos-cli-windows-x64` artifact。
 
-如果要发布正式 Release，不需要先下载 artifact 再手动上传。推送一个 `v*` tag 即可自动创建 GitHub Release，并把 `faos-cli-windows-x64.exe` 上传为 Release 附件：
+如果要发布正式 Release，不需要先下载 artifact 再手动上传。推送一个 `v*` tag 即可自动创建 GitHub Release，并把 `faos-cli-windows-x64.exe` 和 `faos-cli-windows-x64.exe.sha256` 上传为 Release 附件。Release title 会自动使用 `FAOS CLI <tag>`，Release notes 会自动写入资产列表、SHA256 校验值和 PowerShell 校验命令：
 
 ```powershell
 git tag -a v1.0.0 -m "FAOS CLI v1.0.0"
 git push origin v1.0.0
+```
+
+下载后可用 PowerShell 校验：
+
+```powershell
+(Get-FileHash -Algorithm SHA256 .\faos-cli-windows-x64.exe).Hash.ToLowerInvariant()
+Get-Content .\faos-cli-windows-x64.exe.sha256
 ```
 
 ## 繁體中文
@@ -401,11 +408,18 @@ target\release\faos-cli.exe
 
 你可以在 GitHub 倉庫的 Actions 頁面下載 `faos-cli-windows-x64` artifact。
 
-如果要發布正式 Release，不需要先下載 artifact 再手動上傳。推送一個 `v*` tag 即可自動建立 GitHub Release，並把 `faos-cli-windows-x64.exe` 上傳為 Release 附件：
+如果要發布正式 Release，不需要先下載 artifact 再手動上傳。推送一個 `v*` tag 即可自動建立 GitHub Release，並把 `faos-cli-windows-x64.exe` 和 `faos-cli-windows-x64.exe.sha256` 上傳為 Release 附件。Release title 會自動使用 `FAOS CLI <tag>`，Release notes 會自動寫入資產列表、SHA256 校驗值和 PowerShell 校驗命令：
 
 ```powershell
 git tag -a v1.0.0 -m "FAOS CLI v1.0.0"
 git push origin v1.0.0
+```
+
+下載後可用 PowerShell 校驗：
+
+```powershell
+(Get-FileHash -Algorithm SHA256 .\faos-cli-windows-x64.exe).Hash.ToLowerInvariant()
+Get-Content .\faos-cli-windows-x64.exe.sha256
 ```
 
 ## English
@@ -600,9 +614,16 @@ The repository includes `.github/workflows/windows-build.yml`. After pushing to 
 
 Download the `faos-cli-windows-x64` artifact from the repository's Actions page.
 
-For an official GitHub Release, you do not need to download the artifact and upload it manually. Push a `v*` tag and the workflow will create the GitHub Release automatically, then attach `faos-cli-windows-x64.exe`:
+For an official GitHub Release, you do not need to download the artifact and upload it manually. Push a `v*` tag and the workflow will create the GitHub Release automatically, then attach `faos-cli-windows-x64.exe` and `faos-cli-windows-x64.exe.sha256`. The Release title is generated as `FAOS CLI <tag>`, and the Release notes include the asset list, SHA256 checksum, and PowerShell verification command:
 
 ```powershell
 git tag -a v1.0.0 -m "FAOS CLI v1.0.0"
 git push origin v1.0.0
+```
+
+After downloading, verify with PowerShell:
+
+```powershell
+(Get-FileHash -Algorithm SHA256 .\faos-cli-windows-x64.exe).Hash.ToLowerInvariant()
+Get-Content .\faos-cli-windows-x64.exe.sha256
 ```
